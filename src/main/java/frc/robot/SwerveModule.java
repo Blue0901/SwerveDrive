@@ -43,7 +43,7 @@ public class SwerveModule {
 
   // Gains are for example purposes only - must be determined for your own robot!
   private final PIDController m_turningPIDController =
-      new PIDController(0.00025,0.00043,0.000001);
+      new PIDController(0.00025,0.00,0.000001);                  
           //0.00005,
           //0.00005,
           //-0.00005);
