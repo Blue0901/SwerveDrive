@@ -15,6 +15,7 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
@@ -39,14 +40,24 @@ public class SwerveModule {
   private final CANCoder m_turningEncoder;
 
   // Gains are for example purposes only - must be determined for your own robot!
-  private final PIDController m_drivePIDController = new PIDController(0, 0, 0);
+  private final PIDController m_drivePIDController = new PIDController(0.00004, 0, 0);
 
   // Gains are for example purposes only - must be determined for your own robot!
   private final PIDController m_turningPIDController =
-      new PIDController(0.00025,0.00,0.000001);                  
+      //new PIDController(0.00021,0.0000001,0.00000005);
+      //new PIDController(0.00025,0.00253,-0.00001);
+      //new PIDController(0.0004,0.001,-0.00001);
+      //new PIDController(0.0005,0.00001,0.00000);
           //0.00005,
           //0.00005,
           //-0.00005);
+
+        //new PIDController(0.009975,0,0.0001);
+          new PIDController(0.0049875,0.0,0.0001);
+
+
+          
+      
 
   // Gains are for example purposes only - must be determined for your own robot!
   private final SimpleMotorFeedforward m_driveFeedforward = new SimpleMotorFeedforward(0, 0);
@@ -63,7 +74,8 @@ public class SwerveModule {
    * @param turningEncoderChannelB DIO input for the turning encoder channel B
    */
   public SwerveModule(
-      int driveMotorChannel,
+      
+  int driveMotorChannel,
       int turningMotorChannel,
       int cancoderID) {
     m_driveMotor = new CANSparkMax(driveMotorChannel, MotorType.kBrushless);
@@ -93,7 +105,8 @@ public class SwerveModule {
    */
   public SwerveModuleState getState() {
     return new SwerveModuleState(
-        m_driveEncoder.getVelocity(), new Rotation2d(Math.toDegrees(m_turningEncoder.getAbsolutePosition())));
+        (m_driveEncoder.getVelocity()), new Rotation2d(Math.toRadians(m_turningEncoder.getAbsolutePosition())));
+
   }
 
   /**
@@ -103,7 +116,8 @@ public class SwerveModule {
    */
   public SwerveModulePosition getPosition() {
     return new SwerveModulePosition(
-        m_driveEncoder.getPosition(), new Rotation2d(m_turningEncoder.getAbsolutePosition()));
+       
+    m_driveEncoder.getPosition(), new Rotation2d((Math.toRadians(m_turningEncoder.getAbsolutePosition()))));
   }
 
   /**
@@ -113,22 +127,28 @@ public class SwerveModule {
    */
   public void setDesiredState(SwerveModuleState desiredState) {
     // Optimize the reference state to avoid spinning further than 90 degrees
-    SwerveModuleState state =
-        SwerveModuleState.optimize(desiredState, new Rotation2d(Math.toDegrees(m_turningEncoder.getAbsolutePosition())));
-
-    // Calculate the drive output from the drive PID controller.
+    SwerveModuleState state = SwerveModuleState.optimize(desiredState,  new Rotation2d(Math.toRadians(m_turningEncoder.getAbsolutePosition())));
+    
+      
     final double driveOutput =
-        m_drivePIDController.calculate(m_driveEncoder.getVelocity(), state.speedMetersPerSecond);
+    m_drivePIDController.calculate(m_driveEncoder.getVelocity(), state.speedMetersPerSecond);
 
-    final double driveFeedforward = m_driveFeedforward.calculate(state.speedMetersPerSecond);
+final double driveFeedforward = m_driveFeedforward.calculate(state.speedMetersPerSecond);
 
     // Calculate the turning motor output from the turning PID controller.
-    //double wantedAngle = ExtraMath.mod(state.angle.getDegrees() + 180.0, 360.0) - 180.0;
-    double wantedAngle = ExtraMath.mod(state.angle.getDegrees()+180.0, 360.0) - 180.0;
+    double wantedAngle = ExtraMath.mod(state.angle.getDegrees() + 180.0, 360.0) - 180.0;
+    //double wantedAngle = ExtraMath.mod(state.angle.getDegrees()+180.0, 360.0) - 180.0;
     final double turnOutput =
         m_turningPIDController.calculate(m_turningEncoder.getAbsolutePosition(), wantedAngle);
+        //m_turningPIDController.calculate(m_turningEncoder.getAbsolutePosition(), state.angle.getDegrees());
         
+        //System.out.println("wanted angle: "+ wantedAngle); System.out.println(m_turningEncoder.getAbsolutePosition());
+        //System.out.printf("\n %.3f Wanted angle: %.3f current angle:\n", wantedAngle, m_turningEncoder.getAbsolutePosition());
+          System.out.println(m_turningPIDController.getPositionError());
     m_driveMotor.set(driveOutput);
-    m_turningMotor.set(turnOutput);
+    m_turningMotor.set(-turnOutput);
+
+      
+
   }
 }
